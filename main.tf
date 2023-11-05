@@ -300,7 +300,7 @@ resource "mso_schema_template_anp_epg_contract" "epg_provider" {
   schema_id         = mso_schema.schema1.id
   template_name     = local.aws_template_name
   anp_name          = mso_schema_template_anp.aws_ap.name
-  epg_name          = mso_schema_template_anp_epg.cloud_epg.name
+  epg_name          = mso_schema_template_anp_epg.web_epg.name
   contract_name     = mso_schema_template_contract.contract_ext_epg.contract_name
   relationship_type = "provider"
 }

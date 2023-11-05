@@ -5,6 +5,8 @@ locals {
   templates_redeploy      = false
 }
 
+### Tenant + Schema + Templates ###
+
 # Define Tenant
 
 resource "mso_tenant" "tenant" {
@@ -73,7 +75,7 @@ resource "mso_schema_site" "aws_template3" {
   undeploy_on_destroy = true
 }
 
-### Stretched Template Level - Networking ###
+### Stretched Template Level - Networking and Policies ###
 
 # Create VRF to be stretched between AWS & DC1
 
@@ -85,9 +87,32 @@ resource "mso_schema_template_vrf" "vrf1" {
   ip_data_plane_learning = "enabled"
 }
 
+# Create Filter and Contract between DC1 and AWS 
+
+resource "mso_schema_template_filter_entry" "dc1_aws" {
+  schema_id          = mso_schema.schema1.id
+  template_name      = local.stretched_template_name
+  name               = var.filter_dc1_aws
+  display_name       = var.filter_dc1_aws
+  entry_name         = "Any"
+  entry_display_name = "Any"
+}
+
+resource "mso_schema_template_contract" "dc1_aws" {
+  schema_id     = mso_schema.schema1.id
+  template_name = local.stretched_template_name
+  contract_name = var.contract_dc1_aws
+  display_name  = var.contract_dc1_aws
+  scope         = "context"
+  directives    = ["none"]
+  filter_relationship {
+    filter_name = mso_schema_template_filter_entry.dc1_aws.name
+  }
+}
+
 ### Site Level for AWS only
 
-## Define Region, CIDR and Subnets in AWS
+# Define Region, CIDR and Subnets in AWS
 
 resource "mso_schema_site_vrf_region" "aws_region" {
   schema_id          = mso_schema.schema1.id
@@ -126,32 +151,7 @@ resource "mso_schema_site_vrf_region" "aws_region" {
   }
 }
 
-### Stretched Template Level - Policies ###
-
-# Create Filter and Contract between DC1 and AWS 
-
-resource "mso_schema_template_filter_entry" "dc1_aws" {
-  schema_id          = mso_schema.schema1.id
-  template_name      = local.stretched_template_name
-  name               = var.filter_dc1_aws
-  display_name       = var.filter_dc1_aws
-  entry_name         = "Any"
-  entry_display_name = "Any"
-}
-
-resource "mso_schema_template_contract" "dc1_aws" {
-  schema_id     = mso_schema.schema1.id
-  template_name = local.stretched_template_name
-  contract_name = var.contract_dc1_aws
-  display_name  = var.contract_dc1_aws
-  scope         = "context"
-  directives    = ["none"]
-  filter_relationship {
-    filter_name = mso_schema_template_filter_entry.dc1_aws.name
-  }
-}
-
-### DC1 Template Level - Networking & Policies ###
+### DC1 Only Template  - Networking & Policies ###
 
 resource "mso_schema_template_bd" "bd_db" {
   schema_id              = mso_schema.schema1.id
@@ -219,7 +219,7 @@ resource "mso_schema_template_anp_epg_contract" "web_to_db" {
   relationship_type      = "provider"
 }
 
-### AWS Template Level - Networking & Policies ###
+### AWS Only Template - Networking & Policies ###
 
 # Create Application Profile
 
@@ -271,7 +271,7 @@ resource "mso_schema_template_external_epg" "external_epg" {
   selector_ip       = var.ext_epg_selector_ip
 }
 
-## Create Filter and Contract to allow Internet access to Web EPG
+# Create Filter and Contract to allow Internet access to Web EPG
 
 resource "mso_schema_template_filter_entry" "filter_entry_ext_epg" {
   schema_id          = mso_schema.schema1.id

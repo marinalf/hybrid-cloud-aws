@@ -232,7 +232,7 @@ resource "mso_schema_template_anp" "aws_ap" {
 
 # Create Web EPG
 
-resource "mso_schema_template_anp_epg" "cloud_epg" {
+resource "mso_schema_template_anp_epg" "web_epg" {
   schema_id         = mso_schema.schema1.id
   template_name     = local.aws_template_name
   anp_name          = mso_schema_template_anp.aws_ap.name
@@ -240,6 +240,20 @@ resource "mso_schema_template_anp_epg" "cloud_epg" {
   display_name      = var.web_epg_name
   vrf_name          = mso_schema_template_vrf.vrf1.name
   vrf_template_name = mso_schema_template_vrf.vrf1.template
+}
+
+resource "mso_schema_site_anp_epg_selector" "epgSel1" {
+  schema_id     = mso_schema.schema1.id
+  site_id       = data.mso_site.aws_site.id
+  template_name = local.aws_template_name
+  anp_name      = mso_schema_template_anp.aws_ap.name
+  epg_name      = mso_schema_template_anp_epg.web_epg.name
+  name          = "epgSel1"
+  expressions {
+    key      = var.epg_selector_key
+    operator = "equals"
+    value    = var.epg_selector_value
+  }
 }
 
 # Create External EPG to represent Internet
@@ -299,20 +313,4 @@ resource "mso_schema_template_external_epg_contract" "ext_epg_consumer" {
   external_epg_name = mso_schema_template_external_epg.external_epg.external_epg_name
   contract_name     = mso_schema_template_contract.contract_ext_epg.contract_name
   relationship_type = "consumer"
-}
-
-## Create Endpoint Selector for the Web EPG
-
-resource "mso_schema_site_anp_epg_selector" "epgSel1" {
-  schema_id     = mso_schema.schema1.id
-  site_id       = data.mso_site.aws_site.id
-  template_name = local.aws_template_name
-  anp_name      = mso_schema_template_anp.aws_ap.name
-  epg_name      = mso_schema_template_anp_epg.cloud_epg.name
-  name          = "epgSel1"
-  expressions {
-    key      = var.epg_selector_key
-    operator = "equals"
-    value    = var.epg_selector_value
-  }
 }

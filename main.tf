@@ -24,7 +24,7 @@ resource "mso_tenant" "tenant" {
   }
 }
 
-# Define schema and template
+# Define Schema and Templates
 
 resource "mso_schema" "schema1" {
   name = var.schema_name

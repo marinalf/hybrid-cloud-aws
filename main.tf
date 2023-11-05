@@ -45,7 +45,7 @@ resource "mso_schema" "schema1" {
   }
 }
 
-# Associate schema and template with cloud site
+# Associate schema and templates with DC1 and AWS
 
 resource "mso_schema_site" "dc1_template1" {
   schema_id           = mso_schema.schema1.id

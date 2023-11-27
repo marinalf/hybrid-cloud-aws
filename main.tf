@@ -5,25 +5,6 @@ locals {
   templates_redeploy      = false
 }
 
-### Tenant + Schema + Templates ###
-
-# Define Tenant
-
-resource "mso_tenant" "tenant" {
-  name         = var.tenant.tenant_name
-  display_name = var.tenant.display_name
-  description  = var.tenant.description
-  site_associations {
-    site_id = data.mso_site.dc1_site.id
-  }
-  site_associations {
-    site_id                = data.mso_site.aws_site.id
-    vendor                 = "aws"
-    aws_account_id         = var.aws.aws_account_id
-    is_aws_account_trusted = true
-  }
-}
-
 # Define Schema and Templates
 
 resource "mso_schema" "schema1" {
@@ -31,17 +12,17 @@ resource "mso_schema" "schema1" {
   template {
     name         = var.template1
     display_name = var.template1
-    tenant_id    = mso_tenant.tenant.id
+    tenant_id    = data.mso_tenant.tenant.id
   }
   template {
     name         = local.dc1_template_name
     display_name = local.dc1_template_name
-    tenant_id    = mso_tenant.tenant.id
+    tenant_id    = data.mso_tenant.tenant.id
   }
   template {
     name         = local.aws_template_name
     display_name = local.aws_template_name
-    tenant_id    = mso_tenant.tenant.id
+    tenant_id    = data.mso_tenant.tenant.id
   }
 }
 
@@ -54,13 +35,6 @@ resource "mso_schema_site" "dc1_template1" {
   undeploy_on_destroy = true
 }
 
-resource "mso_schema_site" "dc1_template2" {
-  schema_id           = mso_schema.schema1.id
-  template_name       = local.dc1_template_name
-  site_id             = data.mso_site.dc1_site.id
-  undeploy_on_destroy = true
-}
-
 resource "mso_schema_site" "aws_template1" {
   schema_id           = mso_schema.schema1.id
   template_name       = local.stretched_template_name
@@ -68,11 +42,20 @@ resource "mso_schema_site" "aws_template1" {
   undeploy_on_destroy = true
 }
 
+resource "mso_schema_site" "dc1_template2" {
+  schema_id           = mso_schema.schema1.id
+  template_name       = local.dc1_template_name
+  site_id             = data.mso_site.dc1_site.id
+  undeploy_on_destroy = true
+  depends_on = [mso_schema_site.dc1_template1]
+}
+
 resource "mso_schema_site" "aws_template3" {
   schema_id           = mso_schema.schema1.id
   template_name       = local.aws_template_name
   site_id             = data.mso_site.aws_site.id
   undeploy_on_destroy = true
+  depends_on = [mso_schema_site.aws_template1]
 }
 
 ### Stretched Template Level - Networking and Policies ###
@@ -89,6 +72,7 @@ resource "mso_schema_template_vrf" "vrf1" {
 
 # Create Filter and Contract between DC1 and AWS 
 
+/*
 resource "mso_schema_template_filter_entry" "dc1_aws" {
   schema_id          = mso_schema.schema1.id
   template_name      = local.stretched_template_name
@@ -104,11 +88,13 @@ resource "mso_schema_template_contract" "dc1_aws" {
   contract_name = var.contract_dc1_aws
   display_name  = var.contract_dc1_aws
   scope         = "context"
-  directives    = ["none"]
   filter_relationship {
     filter_name = mso_schema_template_filter_entry.dc1_aws.name
+    filter_type = "bothWay"
+    directives  = ["none"]
   }
 }
+*/
 
 ### Site Level for AWS only
 
@@ -198,6 +184,8 @@ resource "mso_schema_template_anp_epg" "db_epg" {
   vrf_template_name = mso_schema_template_vrf.vrf1.template
 }
 
+# Waiting binding type update
+/*
 resource "mso_schema_site_anp_epg_domain" "db_epg_vmm" {
   schema_id            = mso_schema.schema1.id
   template_name        = local.dc1_template_name
@@ -209,7 +197,7 @@ resource "mso_schema_site_anp_epg_domain" "db_epg_vmm" {
   resolution_immediacy = "immediate"
 }
 
-resource "mso_schema_template_anp_epg_contract" "web_to_db" {
+resource "mso_schema_template_anp_epg_contract" "db_to_web" {
   schema_id              = mso_schema.schema1.id
   template_name          = local.dc1_template_name
   anp_name               = mso_schema_template_anp.dc1_ap.name
@@ -218,6 +206,7 @@ resource "mso_schema_template_anp_epg_contract" "web_to_db" {
   contract_template_name = mso_schema_template_contract.dc1_aws.template_name
   relationship_type      = "provider"
 }
+*/
 
 ### AWS Only Template - Networking & Policies ###
 
@@ -256,6 +245,18 @@ resource "mso_schema_site_anp_epg_selector" "epgSel1" {
   }
 }
 
+/*
+resource "mso_schema_template_anp_epg_contract" "web_to_db" {
+  schema_id              = mso_schema.schema1.id
+  template_name          = local.aws_template_name
+  anp_name               = mso_schema_template_anp.aws_ap.name
+  epg_name               = mso_schema_template_anp_epg.web_epg.name
+  contract_name          = mso_schema_template_contract.dc1_aws.contract_name
+  contract_template_name = mso_schema_template_contract.dc1_aws.template_name
+  relationship_type      = "consumer"
+}
+*/
+
 # Create External EPG to represent Internet
 
 resource "mso_schema_template_external_epg" "external_epg" {
@@ -272,7 +273,7 @@ resource "mso_schema_template_external_epg" "external_epg" {
 }
 
 # Create Filter and Contract to allow Internet access to Web EPG
-
+/*
 resource "mso_schema_template_filter_entry" "filter_entry_ext_epg" {
   schema_id          = mso_schema.schema1.id
   template_name      = local.aws_template_name
@@ -288,9 +289,10 @@ resource "mso_schema_template_contract" "contract_ext_epg" {
   contract_name = var.internet_contract_name
   display_name  = var.internet_contract_name
   scope         = "context"
-  directives    = ["none"]
   filter_relationship {
     filter_name = mso_schema_template_filter_entry.filter_entry_ext_epg.name
+    filter_type = "bothWay"
+    directives  = ["none"]
   }
 }
 
@@ -314,3 +316,5 @@ resource "mso_schema_template_external_epg_contract" "ext_epg_consumer" {
   contract_name     = mso_schema_template_contract.contract_ext_epg.contract_name
   relationship_type = "consumer"
 }
+
+*/

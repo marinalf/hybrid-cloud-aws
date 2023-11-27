@@ -1,6 +1,6 @@
 # All credentials and sensitive information are declared in a override.tf or terraform.tfvars file.
 
-# NDO Credentials
+# NDO credentials, if not using GitLab
 
 variable "ndo" {
   type = map(any)
@@ -14,13 +14,9 @@ variable "ndo" {
 
 # AWS credentials
 
-variable "aws" {
-  type = object({
-    aws_account_id = string
-  })
-  default = {
-    aws_account_id = "account"
-  }
+variable "aws_account_id" {
+  type    = string
+  default = "account"
 }
 
 # Site names as seen on Nexus Dashboard
@@ -39,20 +35,16 @@ variable "dc1_site_name" {
 
 # Tenant
 
-variable "tenant" {
-  type = map(any)
-  default = {
-    tenant_name  = "hybrid-cloud"
-    display_name = "hybrid-cloud"
-    description  = "This is a demo tenant created by Terraform"
-  }
+variable "tenant_name" {
+  type = string
+  default = "hybrid-cloud"
 }
 
 # Schema & Template
 
 variable "schema_name" {
   type    = string
-  default = "distributed-app-with-aws"
+  default = "distributed-app-with-aws-us-east-1"
 }
 
 variable "template1" {
@@ -70,11 +62,21 @@ variable "template3" {
   default = "template-aws"
 }
 
-# Stretched VRF in AWS and DC1
+## Stretched Template - DC1 & AWS
 
 variable "vrf_name" {
   type    = string
-  default = "vrf1"
+  default = "VRF1"
+}
+
+variable "filter_dc1_aws" {
+  type    = string
+  default = "web-to-db"
+}
+
+variable "contract_dc1_aws" {
+  type    = string
+  default = "web-to-db"
 }
 
 ## AWS Site Level - Networking
@@ -140,24 +142,11 @@ variable "aws_user_subnets" {
   }
 }
 
-## Stretched Template Level - Policies
-
-variable "filter_dc1_aws" {
-  type    = string
-  default = "all-traffic"
-}
-
-variable "contract_dc1_aws" {
-  type    = string
-  default = "web-to-db"
-}
-
-
 ## DC1 Variables
 
 variable "bd_db" {
   type    = string
-  default = "bd-db"
+  default = "BD-DB-1"
 }
 
 variable "bd_db_subnet" {
@@ -167,12 +156,12 @@ variable "bd_db_subnet" {
 
 variable "dc1_ap_name" {
   type    = string
-  default = "myapp"
+  default = "myapp-1"
 }
 
 variable "db_epg_name" {
   type    = string
-  default = "database"
+  default = "Database"
 }
 
 variable "vmm_dc1" {
@@ -189,7 +178,7 @@ variable "aws_ap_name" {
 
 variable "web_epg_name" {
   type    = string
-  default = "web"
+  default = "WEB"
 }
 
 variable "epg_selector_key" {
@@ -204,7 +193,7 @@ variable "epg_selector_value" {
 
 variable "ext_epg" {
   type    = string
-  default = "internet"
+  default = "INTERNET"
 }
 
 variable "ext_epg_selector" {
@@ -225,10 +214,5 @@ variable "filter_name" {
 variable "internet_contract_name" {
   type    = string
   default = "internet-access"
-}
-
-variable "bd_name" {
-  type    = string
-  default = "web"
 }
 

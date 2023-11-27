@@ -7,3 +7,7 @@ data "mso_site" "dc1_site" {
 data "mso_site" "aws_site" {
   name = var.aws_site_name
 }
+
+data "mso_tenant" "tenant" {
+  name         = var.tenant_name
+}
